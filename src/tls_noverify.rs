@@ -1,7 +1,6 @@
-
-use rustls::pki_types::{CertificateDer, ServerName, UnixTime};
 use rustls::client::danger::HandshakeSignatureValid;
 use rustls::crypto::{verify_tls12_signature, verify_tls13_signature, CryptoProvider};
+use rustls::pki_types::{CertificateDer, ServerName, UnixTime};
 use rustls::DigitallySignedStruct;
 
 #[derive(Debug)]
@@ -54,10 +53,6 @@ impl rustls::client::danger::ServerCertVerifier for NoCertificateVerification {
     }
 
     fn supported_verify_schemes(&self) -> Vec<rustls::SignatureScheme> {
-        self.0
-            .signature_verification_algorithms
-            .supported_schemes()
+        self.0.signature_verification_algorithms.supported_schemes()
     }
 }
-
-

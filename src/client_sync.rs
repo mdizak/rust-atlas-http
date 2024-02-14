@@ -1,11 +1,7 @@
 #![allow(clippy::large_enum_variant)]
 
-use super::{
-    HttpBody, HttpClient, HttpClientConfig, HttpRequest, HttpResponse, HttpSyncClient, ProxyType,
-};
-use crate::client_builder::HttpClientBuilder;
+use super::{HttpBody, HttpClientConfig, HttpRequest, HttpResponse, HttpSyncClient, ProxyType};
 use crate::error::{Error, FileNotCreatedError, InvalidResponseError};
-use crate::socks5;
 use rustls::pki_types::ServerName;
 use std::fs::File;
 use std::io::{BufRead, BufReader, Read, Write};
@@ -15,67 +11,64 @@ use std::sync::Arc;
 use std::time::Duration;
 use url::Url;
 
-impl HttpClient {
+use crate::socks5;
+
+impl HttpSyncClient {
     pub fn new(config: &HttpClientConfig) -> Self {
         Self {
             config: config.clone(),
         }
     }
 
-    /// Instantiate HTTP client builder
-    pub fn builder() -> HttpClientBuilder {
-        HttpClientBuilder::new()
-    }
-
     /// Send HTTP request, and return response
-    pub async fn send(&mut self, req: &HttpRequest) -> Result<HttpResponse, Error> {
-        self.send_request(req, &String::new()).await
+    pub fn send(&mut self, req: &HttpRequest) -> Result<HttpResponse, Error> {
+        self.send_request(req, &String::new())
     }
 
     /// Download a file
-    pub async fn download(&mut self, url: &str, dest_file: &str) -> Result<HttpResponse, Error> {
+    pub fn download(&mut self, url: &str, dest_file: &str) -> Result<HttpResponse, Error> {
         let req = HttpRequest::new("GET", url, &vec![], &HttpBody::empty());
-        self.send_request(&req, &dest_file.to_string()).await
+        self.send_request(&req, &dest_file.to_string())
     }
 
     /// Send GET request
-    pub async fn get(&mut self, url: &str) -> Result<HttpResponse, Error> {
+    pub fn get(&mut self, url: &str) -> Result<HttpResponse, Error> {
         let req = HttpRequest::new("GET", url, &Vec::new(), &HttpBody::empty());
-        self.send_request(&req, &String::new()).await
+        self.send_request(&req, &String::new())
     }
 
     /// Send POST request
-    pub async fn post(&mut self, url: &str, body: &HttpBody) -> Result<HttpResponse, Error> {
+    pub fn post(&mut self, url: &str, body: &HttpBody) -> Result<HttpResponse, Error> {
         let req = HttpRequest::new("POST", url, &Vec::new(), body);
-        self.send_request(&req, &String::new()).await
+        self.send_request(&req, &String::new())
     }
 
     /// Send PUT request
-    pub async fn put(&mut self, url: &str, data: &[u8]) -> Result<HttpResponse, Error> {
+    pub fn put(&mut self, url: &str, data: &[u8]) -> Result<HttpResponse, Error> {
         let req = HttpRequest::new("PUT", url, &Vec::new(), &HttpBody::from_raw(data));
-        self.send_request(&req, &String::new()).await
+        self.send_request(&req, &String::new())
     }
 
     /// Send DELETE request
-    pub async fn delete(&mut self, url: &str) -> Result<HttpResponse, Error> {
+    pub fn delete(&mut self, url: &str) -> Result<HttpResponse, Error> {
         let req = HttpRequest::new("DELETE", url, &Vec::new(), &HttpBody::empty());
-        self.send_request(&req, &String::new()).await
+        self.send_request(&req, &String::new())
     }
 
     /// Send OPTIONS request
-    pub async fn options(&mut self, url: &str) -> Result<HttpResponse, Error> {
+    pub fn options(&mut self, url: &str) -> Result<HttpResponse, Error> {
         let req = HttpRequest::new("OPTIONS", url, &Vec::new(), &HttpBody::empty());
-        self.send_request(&req, &String::new()).await
+        self.send_request(&req, &String::new())
     }
 
     /// Send HEAD request
-    pub async fn head(&mut self, url: &str) -> Result<HttpResponse, Error> {
+    pub fn head(&mut self, url: &str) -> Result<HttpResponse, Error> {
         let req = HttpRequest::new("HEAD", url, &Vec::new(), &HttpBody::empty());
-        self.send_request(&req, &String::new()).await
+        self.send_request(&req, &String::new())
     }
 
     // Send request, used internally by the other methods.
-    async fn send_request(
+    fn send_request(
         &mut self,
         req: &HttpRequest,
         dest_file: &String,
@@ -84,7 +77,7 @@ impl HttpClient {
         let (uri, port, message) = req.prepare(&self.config)?;
 
         // Connect
-        let mut reader = self.connect(&uri, &port, &message).await?;
+        let mut reader = self.connect(&uri, &port, &message)?;
 
         // Read header
         let mut res = HttpResponse::read_header(&mut reader, req, dest_file)?;
@@ -92,7 +85,13 @@ impl HttpClient {
 
         // Check follow location
         if self.config.follow_location && res.headers().has_lower("location") {
-            res = self.follow(&res, dest_file)?;
+            let redirect_req = HttpRequest::new(
+                "GET",
+                res.headers().get_lower("location").unwrap().as_str(),
+                &vec![],
+                &HttpBody::empty(),
+            );
+            res = self.send_request(&redirect_req, dest_file)?;
         }
 
         // Return if not downloading a file
@@ -134,27 +133,8 @@ impl HttpClient {
         Ok(res)
     }
 
-    /// Check redirect if follow_location enabled
-    fn follow(&self, res: &HttpResponse, dest_file: &String) -> Result<HttpResponse, Error> {
-        let redirect_url = res.headers().get_lower("location").unwrap();
-        let mut rhttp = HttpSyncClient::new(&self.config.clone());
-
-        let next_res = if dest_file.is_empty() {
-            rhttp.get(&redirect_url.clone())?
-        } else {
-            rhttp.download(&redirect_url.clone(), dest_file)?
-        };
-
-        Ok(next_res)
-    }
-
     // Connect to remote server
-    async fn connect(
-        &self,
-        uri: &Url,
-        port: &u16,
-        message: &[u8],
-    ) -> Result<Box<dyn BufRead>, Error> {
+    fn connect(&self, uri: &Url, port: &u16, message: &Vec<u8>) -> Result<Box<dyn BufRead>, Error> {
         // Prepare uri
         let hostname =
             if self.config.proxy_type != ProxyType::None && !self.config.proxy_host.is_empty() {
