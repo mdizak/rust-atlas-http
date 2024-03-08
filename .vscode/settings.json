@@ -3,10 +3,24 @@
 	"gitlens.terminalLinks.showDetailsView": true,
 	"gitlens.autolinks": [
 		{
-			"alphanumeric": true,
+			"alphanumeric": false,
 			"url": null,
 			"ignoreCase": true,
 			"prefix": null
 		}
-	]
+	],
+	"mediaPreview.video.autoPlay": true,
+	"css.format.spaceAroundSelectorSeparator": true,
+	"github.copilot.chat.welcomeMessage": "always",
+	"batch-runner.runBatchIn": "External-cmd",
+	"C_Cpp.autocompleteAddParentheses": true,
+	"editor.columnSelection": true,
+	"editor.experimental.asyncTokenizationVerification": true,
+	"editor.foldingImportsByDefault": true,
+	"editor.gotoLocation.alternativeImplementationCommand": "editor.action.referenceSearch.trigger",
+	"editor.gotoLocation.alternativeReferenceCommand": "editor.action.peekImplementation",
+	"editor.hideCursorInOverviewRuler": true,
+	"editor.inlineCompletionsAccessibilityVerbose": true,
+	"editor.linkedEditing": true,
+	"accessibility.hideAccessibleView": true
 }
