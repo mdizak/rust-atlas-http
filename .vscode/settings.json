@@ -1,0 +1,12 @@
+{
+	"gitlens.terminalLinks.enabled": true,
+	"gitlens.terminalLinks.showDetailsView": true,
+	"gitlens.autolinks": [
+		{
+			"alphanumeric": true,
+			"url": null,
+			"ignoreCase": true,
+			"prefix": null
+		}
+	]
+}
