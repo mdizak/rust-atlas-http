@@ -1,5 +1,6 @@
 {
     "configurations": [
+        launch
         {
             "name": "CMake: CMake Script",
             "type": "cmake",
