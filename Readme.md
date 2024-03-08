@@ -1,5 +1,5 @@
 
-# Atlas HTTP - 
+# Atlas HTTP -
 
 Clean, simplistic, easy to use HTTP client.  Features:
 
@@ -78,10 +78,6 @@ println!("Status: {}\nBody:\n\n{}", res.status_code(), res.body());
 
 ## Contact
 
-If you need any assistance or software development done, contact me via e-mail at matt@apexpl.io.
-
-
+If you need any assistance or software development done, contact me via e-mail at <matt@apexpl.io>.
 
 Coming shortly, almost done.
-
-
