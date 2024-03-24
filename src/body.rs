@@ -1,4 +1,4 @@
-use super::HttpBody;
+
 use crate::error::Error;
 use rand::{distributions::Alphanumeric, thread_rng, Rng};
 use std::collections::HashMap;
@@ -6,6 +6,16 @@ use std::fs;
 use std::fs::File;
 use std::path::Path;
 use urlencoding::{decode, encode};
+
+#[derive(Clone, Debug)]
+pub struct HttpBody {
+    is_form_post: bool,
+    params: HashMap<String, String>,
+    raw: Vec<u8>,
+    boundary: String,
+    files: HashMap<String, String>,
+}
+
 
 impl HttpBody {
     // Instantiate new body
@@ -17,7 +27,7 @@ impl HttpBody {
             .collect();
 
         Self {
-            is_form_post: params.keys().len() > 0,
+            is_form_post: params.keys().len() > 0 || raw.len() > 0,
             params: params.clone(),
             raw: raw.clone().to_vec(),
             boundary,
@@ -92,8 +102,10 @@ impl HttpBody {
     pub fn format(&self) -> Vec<u8> {
         if !self.files.is_empty() {
             return self.format_multipart();
-        } else if !self.is_form_post {
+        } else if self.raw.len() > 0 {
             return self.raw.clone();
+        } else if !self.is_form_post {
+            return Vec::new();
         }
 
         let body = self
@@ -108,6 +120,7 @@ impl HttpBody {
 
     /// Format multipart message, used for uploading files
     fn format_multipart(&self) -> Vec<u8> {
+
         // Go through params
         let mut body: Vec<u8> = Vec::new();
         for (key, value) in self.params.iter() {

@@ -1,7 +1,7 @@
 #![allow(clippy::large_enum_variant)]
 
 use super::{
-    HttpBody, HttpClient, HttpClientConfig, HttpRequest, HttpResponse, HttpSyncClient, ProxyType,
+    HttpBody, HttpClientConfig, HttpRequest, HttpResponse, HttpSyncClient, ProxyType,
 };
 use crate::client_builder::HttpClientBuilder;
 use crate::error::{Error, FileNotCreatedError, InvalidResponseError};
@@ -14,6 +14,11 @@ use std::path::Path;
 use std::sync::Arc;
 use std::time::Duration;
 use url::Url;
+
+#[derive(Debug, Clone)]
+pub struct HttpClient {
+    config: HttpClientConfig,
+}
 
 impl HttpClient {
     pub fn new(config: &HttpClientConfig) -> Self {

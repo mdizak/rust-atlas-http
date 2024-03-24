@@ -1,4 +1,5 @@
-use super::{CookieJar, HttpHeaders};
+
+use super::HttpHeaders;
 use crate::cookie::Cookie;
 use crate::error::{Error, FileNotCreatedError};
 use std::collections::HashMap;
@@ -8,6 +9,13 @@ use std::io::prelude::*;
 use std::path::Path;
 use std::time::{SystemTime, UNIX_EPOCH};
 use url::Url;
+
+#[derive(Clone, Debug)]
+pub struct CookieJar {
+    jar_file: String,
+    auto_update: bool,
+    cookies: HashMap<String, Cookie>,
+}
 
 impl CookieJar {
     /// Instantiate a new, empty cookie jar

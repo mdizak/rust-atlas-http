@@ -2,9 +2,23 @@ use base64::{engine::general_purpose::STANDARD, Engine as _};
 use rustls::{ClientConfig, RootCertStore};
 use std::path::Path;
 use std::sync::Arc;
-
-use super::{CookieJar, HttpClient, HttpClientConfig, HttpHeaders, HttpSyncClient, ProxyType};
+use super::{CookieJar, HttpClient, HttpHeaders, HttpSyncClient, ProxyType};
 use crate::{tls_noverify, user_agent};
+
+#[derive(Debug, Clone)]
+pub struct HttpClientConfig {
+    pub tls_config: Arc<rustls::ClientConfig>,
+    pub user_agent: Option<String>,
+    pub headers: HttpHeaders,
+    pub cookie: CookieJar,
+    pub follow_location: bool,
+    pub timeout: u64,
+    pub proxy_type: ProxyType,
+    pub proxy_host: String,
+    pub proxy_port: u16,
+    pub proxy_user: String,
+    pub proxy_password: String,
+}
 
 pub struct HttpClientBuilder {
     config: HttpClientConfig,

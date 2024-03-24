@@ -1,5 +1,12 @@
-use super::HttpHeaders;
+
 use std::collections::HashMap;
+
+#[derive(Clone, Debug)]
+pub struct HttpHeaders {
+    pairs: HashMap<String, Vec<String>>,
+    lower_map: HashMap<String, String>,
+}
+
 
 impl HttpHeaders {
     /// Generate blank instance of struct.

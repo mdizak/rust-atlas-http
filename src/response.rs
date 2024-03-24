@@ -1,8 +1,17 @@
 #![allow(clippy::large_enum_variant)]
 
-use super::{HttpHeaders, HttpRequest, HttpResponse};
+use super::{HttpHeaders, HttpRequest};
 use crate::error::{Error, InvalidFirstLineError, InvalidResponseError};
 use std::io::BufRead;
+
+#[derive(Clone, Debug)]
+pub struct HttpResponse {
+    version: String,
+    status_code: u16,
+    reason: String,
+    headers: HttpHeaders,
+    body: String,
+}
 
 impl HttpResponse {
     /// Instantiate response with minimal properties

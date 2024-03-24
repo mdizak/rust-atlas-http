@@ -1,6 +1,6 @@
 #![allow(clippy::large_enum_variant)]
 
-use super::{HttpBody, HttpClientConfig, HttpRequest, HttpResponse, HttpSyncClient, ProxyType};
+use super::{HttpBody, HttpClientConfig, HttpRequest, HttpResponse, ProxyType};
 use crate::error::{Error, FileNotCreatedError, InvalidResponseError};
 use rustls::pki_types::ServerName;
 use std::fs::File;
@@ -10,8 +10,13 @@ use std::path::Path;
 use std::sync::Arc;
 use std::time::Duration;
 use url::Url;
-
 use crate::socks5;
+
+#[derive(Debug, Clone)]
+pub struct HttpSyncClient {
+    config: HttpClientConfig,
+}
+
 
 impl HttpSyncClient {
     pub fn new(config: &HttpClientConfig) -> Self {

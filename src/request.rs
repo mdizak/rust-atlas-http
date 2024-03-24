@@ -1,6 +1,14 @@
-use super::{HttpBody, HttpClientConfig, HttpHeaders, HttpRequest, ProxyType};
+use super::{HttpBody, HttpClientConfig, HttpHeaders, ProxyType};
 use crate::error::Error;
 use url::Url;
+
+#[derive(Clone, Debug)]
+pub struct HttpRequest {
+    pub method: String,
+    pub url: String,
+    pub headers: HttpHeaders,
+    pub body: HttpBody,
+}
 
 impl HttpRequest {
     pub fn new(method: &str, url: &str, headers: &Vec<&str>, body: &HttpBody) -> Self {
@@ -47,7 +55,7 @@ impl HttpRequest {
     fn generate_raw(&self, config: &HttpClientConfig, uri: &Url) -> Vec<u8> {
         // Get target
         let mut target = uri.path().to_string();
-        if config.proxy_type == ProxyType::None {
+        if config.proxy_type != ProxyType::None {
             target = format!(
                 "{}://{}{}",
                 uri.scheme(),
@@ -102,7 +110,7 @@ impl HttpRequest {
         let mut message = lines.join("\r\n").as_bytes().to_vec();
         message.extend(post_body);
         message.extend_from_slice("\r\n".as_bytes());
-
+println!("Request:\n\n{}\n\n", String::from_utf8_lossy(&message));
         message
     }
 }
