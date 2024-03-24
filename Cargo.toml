@@ -1,6 +1,6 @@
 [package]
 name = "atlas-http"
-version = "0.2.1"
+version = "0.2.2"
 authors = ["Matt Dizak"]
 homepage = "https://apexpl.io/"
 keywords = ["http-client", "http", "download"]

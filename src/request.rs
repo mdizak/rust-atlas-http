@@ -110,7 +110,7 @@ impl HttpRequest {
         let mut message = lines.join("\r\n").as_bytes().to_vec();
         message.extend(post_body);
         message.extend_from_slice("\r\n".as_bytes());
-println!("Request:\n\n{}\n\n", String::from_utf8_lossy(&message));
+
         message
     }
 }
