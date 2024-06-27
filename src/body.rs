@@ -177,6 +177,12 @@ impl HttpBody {
         self.params.clone()
     }
 
+    /// Add param
+    pub fn add_param(&mut self, key: &str, value: &str) {
+        *self.params.entry(key.to_string()).or_default() = value.to_string();
+        self.is_form_post = true;
+    }
+
     /// Get raw data
     pub fn get_raw(&self) -> Vec<u8> {
         self.raw.clone()

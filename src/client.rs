@@ -17,7 +17,7 @@ use url::Url;
 
 #[derive(Debug, Clone)]
 pub struct HttpClient {
-    config: HttpClientConfig,
+    pub config: HttpClientConfig,
 }
 
 impl HttpClient {
@@ -154,7 +154,7 @@ impl HttpClient {
     }
 
     // Connect to remote server
-    async fn connect(
+    pub async fn connect(
         &self,
         uri: &Url,
         port: &u16,

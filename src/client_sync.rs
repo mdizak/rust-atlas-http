@@ -139,7 +139,7 @@ impl HttpSyncClient {
     }
 
     // Connect to remote server
-    fn connect(&self, uri: &Url, port: &u16, message: &Vec<u8>) -> Result<Box<dyn BufRead>, Error> {
+    pub fn connect(&self, uri: &Url, port: &u16, message: &Vec<u8>) -> Result<Box<dyn BufRead>, Error> {
         // Prepare uri
         let hostname =
             if self.config.proxy_type != ProxyType::None && !self.config.proxy_host.is_empty() {

@@ -32,30 +32,9 @@ impl Default for HttpClientBuilder {
 
 impl HttpClientBuilder {
     pub fn new() -> Self {
-        // Initialize root store
-        let mut root_store = RootCertStore::empty();
-        root_store.extend(webpki_roots::TLS_SERVER_ROOTS.iter().cloned());
-
-        // Create config
-        let tls_config = ClientConfig::builder()
-            .with_root_certificates(root_store)
-            .with_no_client_auth();
-
-        let config = HttpClientConfig {
-            tls_config: Arc::new(tls_config),
-            user_agent: None,
-            headers: HttpHeaders::from_vec(&vec!["Connection: close".to_string()]),
-            cookie: CookieJar::new(),
-            follow_location: false,
-            timeout: 5,
-            proxy_type: ProxyType::None,
-            proxy_host: String::new(),
-            proxy_port: 0,
-            proxy_user: String::new(),
-            proxy_password: String::new(),
-        };
-
-        Self { config }
+        Self {
+            config: HttpClientConfig::default()
+        }
     }
 
     /// Finish building, and return asynchronous HTTP client
@@ -200,3 +179,35 @@ impl HttpClientBuilder {
         self
     }
 }
+
+impl Default for HttpClientConfig {
+    fn default() -> HttpClientConfig {
+
+        // Initialize root store
+        let mut root_store = RootCertStore::empty();
+        root_store.extend(webpki_roots::TLS_SERVER_ROOTS.iter().cloned());
+
+        // Create config
+        let tls_config = ClientConfig::builder()
+            .with_root_certificates(root_store)
+            .with_no_client_auth();
+
+        HttpClientConfig {
+            tls_config: Arc::new(tls_config),
+            user_agent: None,
+            headers: HttpHeaders::from_vec(&vec!["Connection: close".to_string()]),
+            cookie: CookieJar::new(),
+            follow_location: false,
+            timeout: 5,
+            proxy_type: ProxyType::None,
+            proxy_host: String::new(),
+            proxy_port: 0,
+            proxy_user: String::new(),
+            proxy_password: String::new(),
+        }
+
+    }
+}
+
+
+
