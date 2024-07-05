@@ -1,0 +1,15 @@
+{
+    "configurations": [
+<<<<<<< HEAD
+        launch
+=======
+>>>>>>> 8477b17 (Fff)
+        {
+            "name": "CMake: CMake Script",
+            "type": "cmake",
+            "request": "launch",
+            "cmakeDebugType": "script",
+            "scriptPath": "${file}"
+        }
+    ]
+}
