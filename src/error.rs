@@ -52,3 +52,11 @@ impl fmt::Display for Error {
         }
     }
 }
+
+impl From<std::io::Error> for Error {
+    fn from(err: std::io::Error) -> Self {
+        Error::Custom(err.to_string())
+    }
+}
+
+

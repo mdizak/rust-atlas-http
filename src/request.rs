@@ -3,8 +3,7 @@ use crate::error::Error;
 use url::Url;
 use std::io::{BufRead, BufReader, Read};
 use std::net::TcpStream;
-//use std::io::BufReader as TokioBufReader;
-use tokio::io::AsyncBufReadExt;
+use tokio::io::{AsyncBufReadExt, AsyncReadExt};
 use tokio::io::AsyncBufRead;
 
 #[derive(Clone, Debug)]
@@ -178,7 +177,64 @@ impl HttpRequest {
     }
 
     /// Build request from stream asynchronously
+
     pub async fn build_async(stream: &mut tokio::net::TcpStream) -> Result<Self, Error> {
+        let mut reader = tokio::io::BufReader::new(stream);
+
+        // Read the request line
+        let mut first_line = String::new();
+        reader.read_line(&mut first_line).await?;
+        let first_line = first_line.trim();
+
+        // Parse first line
+        let (method, path) = Self::parse_first_line(&first_line)?;
+
+        // Read headers
+        let mut header_lines = Vec::new();
+        loop {
+            let mut line = String::new();
+            reader.read_line(&mut line).await?;
+            let line = line.trim();
+
+            // Empty line marks end of headers
+            if line.is_empty() {
+                break;
+            }
+            header_lines.push(line.trim().to_string());
+        }
+
+        // Create header
+        let headers = HttpHeaders::from_vec(&header_lines);
+
+        // Read body if present
+        let mut body_bytes = Vec::new();
+        if let Some(content_length_str) = headers.get_lower("content-length") {
+            if let Ok(content_length) = content_length_str.parse::<usize>() {
+                body_bytes.resize(content_length, 0);
+                reader.read_exact(&mut body_bytes).await?;
+            }
+        }
+        let body_str: String = String::from_utf8_lossy(&body_bytes).to_string();
+
+        // Get body
+        let body = if headers.has_lower("content-type") && headers.get_lower_line("content-type").unwrap() == "application/x-www-form-urlencoded".to_string() {
+            HttpBody::from_string(&body_str.as_str())
+        } else {
+            HttpBody::from_raw(&body_bytes)
+        };
+
+
+        Ok( Self {
+            method,
+            url: format!("http://127.0.0.1{}", path),
+            headers,
+            body
+        })
+    }
+    
+
+    /// Build request from stream asynchronously
+    pub async fn build_async_tls(stream: &mut tokio_rustls::server::TlsStream<tokio::net::TcpStream>) -> Result<Self, Error> {
 
         // Read into buffer
         //let (reader, mut writer) = tokio::io::split(stream);
@@ -259,7 +315,6 @@ impl HttpRequest {
         // Return
         Ok((parts[0].to_uppercase().to_string(), parts[1].to_string()))
     }
-
 
 }
 
