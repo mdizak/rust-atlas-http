@@ -3,8 +3,8 @@ use std::collections::HashMap;
 
 #[derive(Clone, Debug)]
 pub struct HttpHeaders {
-    pairs: HashMap<String, Vec<String>>,
-    lower_map: HashMap<String, String>,
+    pub pairs: HashMap<String, Vec<String>>,
+    pub lower_map: HashMap<String, String>,
 }
 
 

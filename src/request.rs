@@ -39,6 +39,11 @@ impl HttpRequest {
             return Err(Error::ProtoNotSupported(uri.scheme().to_string()));
         }
 
+        // Host is required, generate_raw() relies on it
+        if uri.host_str().is_none() {
+            return Err(Error::InvalidUri(self.url.clone()));
+        }
+
         // Get port
         let mut _port: u16 = 0;
         if uri.port().is_none() && uri.scheme() == "https" {

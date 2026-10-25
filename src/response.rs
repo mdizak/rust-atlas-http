@@ -131,13 +131,18 @@ impl HttpResponse {
             && headers.get_lower("transfer-encoding").unwrap().as_str() == "chunked"
         {
             let mut _tmp = String::new();
-            reader.read_line(&mut _tmp).unwrap();
+            if let Err(e) = reader.read_line(&mut _tmp) {
+                return Err(Error::NoRead(InvalidResponseError { url: req.url.clone(), response: e.to_string() }));
+            }
         }
 
         // Get body
         let mut body = String::new();
         if dest_file.is_empty() {
-            reader.read_to_string(&mut body);
+            // Other errors (eg. missing TLS close_notify after a complete body) keep whatever was read, but a timeout means the body is incomplete
+            if let Err(e) = reader.read_to_string(&mut body) && matches!(e.kind(), std::io::ErrorKind::TimedOut | std::io::ErrorKind::WouldBlock) {
+                return Err(Error::NoRead(InvalidResponseError { url: req.url.clone(), response: e.to_string() }));
+            }
         }
 
         // Get response
@@ -153,10 +158,11 @@ impl HttpResponse {
         // Parse first line
         let mut is_valid = true;
         let parts = first_line
+            .trim_end()
             .trim_start_matches("HTTP/")
-            .split(' ')
+            .splitn(3, ' ')
             .collect::<Vec<&str>>();
-        if !["1.0", "1.1", "2", "3"].contains(&parts[0]) {
+        if parts.len() < 2 || !["1.0", "1.1", "2", "3"].contains(&parts[0]) {
             is_valid = false;
         } else if parts[1].len() != 3 || !parts[1].chars().all(|c| c.is_ascii_digit()) {
             is_valid = false;
@@ -172,8 +178,8 @@ impl HttpResponse {
 
         Ok((
             parts[0].to_string(),
-            parts[1].parse::<u16>().unwrap(),
-            parts[2].to_string(),
+            parts[1].parse::<u16>().unwrap_or(0),
+            parts.get(2).unwrap_or(&"").to_string(),
         ))
     }
 }

@@ -1,6 +1,6 @@
 [package]
 name = "atlas-http"
-version = "0.2.4"
+version = "0.2.7"
 description = "Simple, straight forward, easy to use HTTP client."
 edition = "2024"
 authors = ["Aquila Labs"]
@@ -18,7 +18,7 @@ name = "atlas_http"
 base64 = "0.21.7"
 mime_guess = "2.0.4"
 rand = "0.8.5"
-rustls = "0.22.2"
+rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12"] }
 tokio = { version = "1.36.0", features = ["net", "fs", "io-util"] }
 tokio-rustls = "0.26.2"
 url = "2.5.0"

@@ -13,6 +13,7 @@ pub struct HttpClientConfig {
     pub cookie: CookieJar,
     pub follow_location: bool,
     pub timeout: u64,
+    pub read_timeout: Option<u64>,
     pub proxy_type: ProxyType,
     pub proxy_host: String,
     pub proxy_port: u16,
@@ -53,9 +54,15 @@ impl HttpClientBuilder {
         self
     }
 
-    // Set timeout limit in seconds
+    // Set connect timeout limit in seconds
     pub fn timeout(mut self, seconds: u64) -> Self {
         self.config.timeout = seconds;
+        self
+    }
+
+    /// Set socket read / write timeout in seconds, applied to every individual read and write.  Disabled by default (reads block until the server responds or closes), so slow endpoints such as LLM APIs keep working unless you opt in.
+    pub fn read_timeout(mut self, seconds: u64) -> Self {
+        self.config.read_timeout = Some(seconds.max(1));
         self
     }
 
@@ -83,7 +90,9 @@ impl HttpClientBuilder {
         root_store.extend(webpki_roots::TLS_SERVER_ROOTS.iter().cloned());
 
         // Create config
-        let mut tls_config = ClientConfig::builder()
+        let mut tls_config = ClientConfig::builder_with_provider(Arc::new(rustls::crypto::ring::default_provider()))
+            .with_safe_default_protocol_versions()
+            .expect("ring provider supports the default TLS protocol versions")
             .with_root_certificates(root_store)
             .with_no_client_auth();
 
@@ -188,7 +197,9 @@ impl Default for HttpClientConfig {
         root_store.extend(webpki_roots::TLS_SERVER_ROOTS.iter().cloned());
 
         // Create config
-        let tls_config = ClientConfig::builder()
+        let tls_config = ClientConfig::builder_with_provider(Arc::new(rustls::crypto::ring::default_provider()))
+            .with_safe_default_protocol_versions()
+            .expect("ring provider supports the default TLS protocol versions")
             .with_root_certificates(root_store)
             .with_no_client_auth();
 
@@ -199,6 +210,7 @@ impl Default for HttpClientConfig {
             cookie: CookieJar::new(),
             follow_location: false,
             timeout: 5,
+            read_timeout: None,
             proxy_type: ProxyType::None,
             proxy_host: String::new(),
             proxy_port: 0,

@@ -132,7 +132,7 @@ impl HttpSyncClient {
             if bytes_read == 0 {
                 break;
             }
-            fh.write_all(&buffer).unwrap();
+            fh.write_all(&buffer[..bytes_read]).map_err(Error::Io)?;
         }
 
         Ok(res)
@@ -141,48 +141,60 @@ impl HttpSyncClient {
     // Connect to remote server
     pub fn connect(&self, uri: &Url, port: &u16, message: &Vec<u8>) -> Result<Box<dyn BufRead>, Error> {
         // Prepare uri
+        let host = uri.host_str().ok_or_else(|| Error::InvalidUri(uri.to_string()))?;
         let hostname =
             if self.config.proxy_type != ProxyType::None && !self.config.proxy_host.is_empty() {
                 format!("{}:{}", self.config.proxy_host, self.config.proxy_port)
             } else {
-                format!("{}:{}", &uri.host_str().unwrap(), port)
+                format!("{}:{}", host, port)
             };
-        let mut address = hostname.to_socket_addrs().unwrap();
-        let addr = address.next().unwrap();
 
-        // Open tcp stream
-        let mut sock =
-            match TcpStream::connect_timeout(&addr, Duration::from_secs(self.config.timeout)) {
-                Ok(r) => r,
-                Err(_e) => {
-                    return Err(Error::NoConnect(hostname.clone()));
-                }
-            };
-        sock.set_nodelay(true).unwrap();
+        // Resolve, DNS failure is a connection error and not a panic
+        let addresses: Vec<std::net::SocketAddr> = hostname
+            .to_socket_addrs()
+            .map_err(|_| Error::NoConnect(hostname.clone()))?
+            .collect();
+
+        // Open tcp stream, trying each resolved address in turn
+        let mut stream = None;
+        for addr in addresses {
+            if let Ok(s) = TcpStream::connect_timeout(&addr, Duration::from_secs(self.config.timeout)) {
+                stream = Some(s);
+                break;
+            }
+        }
+        let mut sock = stream.ok_or_else(|| Error::NoConnect(hostname.clone()))?;
+        let _ = sock.set_nodelay(true);
+
+        // Read / write timeouts, if configured
+        if let Some(secs) = self.config.read_timeout {
+            let _ = sock.set_read_timeout(Some(Duration::from_secs(secs)));
+            let _ = sock.set_write_timeout(Some(Duration::from_secs(secs)));
+        }
 
         // SOCKs5 connection, if needed
         if self.config.proxy_type == ProxyType::SOCKS5 {
-            socks5::connect(&mut sock, &self.config, uri, port);
+            socks5::connect(&mut sock, &self.config, uri, port)?;
         }
 
         // Connect over SSL, if needed
         if uri.scheme() == "https" && self.config.proxy_type != ProxyType::HTTP {
-            let dns_name = ServerName::try_from(uri.host_str().unwrap())
-                .unwrap()
+            let dns_name = ServerName::try_from(host)
+                .map_err(|_| Error::InvalidUri(uri.to_string()))?
                 .to_owned();
             let conn = rustls::ClientConnection::new(Arc::clone(&self.config.tls_config), dns_name)
-                .unwrap();
+                .map_err(|e| Error::Custom(e.to_string()))?;
 
             let mut tls_stream = rustls::StreamOwned::new(conn, sock);
-            tls_stream.flush().unwrap();
-            tls_stream.write_all(message).unwrap();
+            tls_stream.flush().map_err(|e| Error::NoWrite(e.to_string()))?;
+            tls_stream.write_all(message).map_err(|e| Error::NoWrite(e.to_string()))?;
 
             let reader = BufReader::with_capacity(2048, tls_stream);
             return Ok(Box::new(reader));
         }
 
         // Get reader
-        sock.write_all(message).unwrap();
+        sock.write_all(message).map_err(|e| Error::NoWrite(e.to_string()))?;
         let reader = BufReader::with_capacity(2048, sock);
 
         Ok(Box::new(reader))

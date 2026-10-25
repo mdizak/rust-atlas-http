@@ -23,12 +23,12 @@ pub fn connect(
 /// Send hello to SOCKS5 proxy
 fn hello(sock: &mut TcpStream, config: &HttpClientConfig) -> Result<(), Error> {
     // Send greeting
-    sock.write_all(&[0x05, 0x01, 0x00]).unwrap();
-    sock.flush().unwrap();
+    sock.write_all(&[0x05, 0x01, 0x00]).map_err(Error::Io)?;
+    sock.flush().map_err(Error::Io)?;
 
     // Read response
     let mut buffer = [0u8; 2];
-    sock.read(&mut buffer).unwrap();
+    sock.read(&mut buffer).map_err(Error::Io)?;
 
     // Check response
     if buffer[1] == 0xFF {
@@ -62,12 +62,12 @@ fn authenticate(sock: &mut TcpStream, config: &HttpClientConfig) -> Result<(), E
     }
 
     // Send request
-    sock.write_all(&request).unwrap();
-    sock.flush().unwrap();
+    sock.write_all(&request).map_err(Error::Io)?;
+    sock.flush().map_err(Error::Io)?;
 
     // Read response
     let mut buffer = [0u8; 2];
-    sock.read(&mut buffer).unwrap();
+    sock.read(&mut buffer).map_err(Error::Io)?;
 
     // Check response
     if buffer[1] != 0x00 {
@@ -83,9 +83,9 @@ fn authenticate(sock: &mut TcpStream, config: &HttpClientConfig) -> Result<(), E
 /// Send request to connect to remote server
 fn request(sock: &mut TcpStream, uri: &Url, port: &u16) -> Result<(), Error> {
     // Get addr
-    let hostname = format!("{}:{}", uri.host_str().unwrap(), port);
-    let mut address = hostname.to_socket_addrs().unwrap();
-    let addr = address.next().unwrap();
+    let host = uri.host_str().ok_or_else(|| Error::InvalidUri(uri.to_string()))?;
+    let hostname = format!("{}:{}", host, port);
+    let addr = hostname.to_socket_addrs().map_err(|_| Error::NoConnect(hostname.clone()))?.next().ok_or_else(|| Error::NoConnect(hostname.clone()))?;
 
     // Set request
     let mut request = vec![0x05, 0x01, 0x00];
@@ -102,7 +102,6 @@ fn request(sock: &mut TcpStream, uri: &Url, port: &u16) -> Result<(), Error> {
             request.push(byte);
         }
     } else {
-        let host = uri.host_str().unwrap();
         request.push(0x03);
         request.push(host.len() as u8);
 
@@ -116,17 +115,17 @@ fn request(sock: &mut TcpStream, uri: &Url, port: &u16) -> Result<(), Error> {
     request.push((addr.port() & 0x00FF) as u8);
 
     // Send request
-    sock.write_all(&request).unwrap();
-    sock.flush().unwrap();
+    sock.write_all(&request).map_err(Error::Io)?;
+    sock.flush().map_err(Error::Io)?;
 
     // Read response
     let mut buffer = [0u8; 10];
-    sock.read(&mut buffer).unwrap();
+    sock.read(&mut buffer).map_err(Error::Io)?;
 
     // Ipv6, get rid of extra bytes
     if buffer[3] == 0x04 {
         let mut tmp_buffer = [0u8; 12];
-        sock.read(&mut tmp_buffer).unwrap();
+        sock.read(&mut tmp_buffer).map_err(Error::Io)?;
     }
 
     // Check response
